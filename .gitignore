@@ -25,4 +25,9 @@ Thumbs.db
 BORDERFLOW_PROJECT_SPEC.md
 BORDERFLOW_VIBE_CODING_EXECUTION_PLAN.md
 
-# Local AI/Vibe Coding execution evidence is versioned under docs/evidence/.
+# Local AI/Vibe Coding execution evidence stays local and is not committed.
+docs/evidence/
+
+# Local implementation notes stay local and are not committed.
+docs/data-model.md
+docs/permissions.md

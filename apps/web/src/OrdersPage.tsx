@@ -44,7 +44,7 @@ export default function OrdersPage() {
       { title: '状态', dataIndex: 'status', render: (value: OrderStatus) => <Tag color={statusColor[value]}>{labels[value]}</Tag> },
       { title: '操作', render: (_: unknown, order: Order) => <Button type="link" onClick={() => setSelected(order)}>查看详情</Button> },
     ]} />
-    <Drawer title={selected ? `订单 ${selected.orderNo}` : '订单详情'} open={!!selected} onClose={() => setSelected(null)} width={560}>
+    <Drawer className="order-drawer" title={selected ? `订单 ${selected.orderNo}` : '订单详情'} open={!!selected} onClose={() => setSelected(null)} width={560}>
       {selected && <><Descriptions column={1} size="small" items={[{ key: 'store', label: '店铺', children: selected.store.name }, { key: 'country', label: '收货国家', children: selected.shippingCountry }, { key: 'amount', label: '订单金额', children: `${selected.totalAmount} ${selected.currency}` }, { key: 'status', label: '状态', children: <Tag color={statusColor[selected.status]}>{labels[selected.status]}</Tag> }]} />
         <Typography.Title level={5}>订单商品</Typography.Title>
         <Table size="small" rowKey="id" pagination={false} dataSource={selected.items} columns={[{ title: 'SKU', dataIndex: ['sku', 'skuCode'] }, { title: '变体', dataIndex: ['sku', 'variantName'] }, { title: '数量', dataIndex: 'quantity' }, { title: '单价', dataIndex: 'unitPrice' }]} />
