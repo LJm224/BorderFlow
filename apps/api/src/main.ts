@@ -3,12 +3,20 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { ApiExceptionFilter } from './infrastructure/api-exception.filter';
+import { PinoLogger } from './infrastructure/pino.logger';
+import { ResponseEnvelopeInterceptor } from './infrastructure/response-envelope.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const logger = app.get(PinoLogger);
+  app.useLogger(logger);
+  app.flushLogs();
   app.setGlobalPrefix('api');
   app.enableCors({ origin: process.env.WEB_ORIGIN ?? 'http://localhost:5173' });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalInterceptors(new ResponseEnvelopeInterceptor());
+  app.useGlobalFilters(new ApiExceptionFilter(logger));
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('BorderFlow API')

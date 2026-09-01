@@ -2,19 +2,22 @@ import { Layout, Tag, Typography } from 'antd';
 import { Link, Route, Routes } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import { ApiSuccess } from '@borderflow/shared';
 
 const { Header, Content, Sider } = Layout;
+const configuredApiUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '');
+const API_BASE_URL = configuredApiUrl.endsWith('/api') ? configuredApiUrl : `${configuredApiUrl}/api`;
 
 function HealthBadge() {
   const { data, isError, isLoading } = useQuery({
     queryKey: ['health'],
-    queryFn: async () => (await axios.get(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3001'}/health`)).data,
+    queryFn: async () => (await axios.get<ApiSuccess<{ status: string }>>(`${API_BASE_URL}/health`)).data.data,
     retry: false,
   });
 
   if (isLoading) return <Tag>API 检查中</Tag>;
   if (isError) return <Tag color="error">API 未连接</Tag>;
-  return <Tag color="success">API {data.status}</Tag>;
+  return <Tag color="success">API {data?.status ?? '未知'}</Tag>;
 }
 
 function Home() {
