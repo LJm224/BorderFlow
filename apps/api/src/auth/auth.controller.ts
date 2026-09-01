@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 import { AuthRequest, AuthResponse, LoginResult } from './auth.types';
 import { CurrentUser } from './current-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { TenantIsolationGuard } from '../tenants/tenant-isolation.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -36,7 +37,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TenantIsolationGuard)
   async me(@CurrentUser() currentUser: { sub: string }): Promise<NonNullable<Awaited<ReturnType<AuthService['getPublicUserById']>>>> {
     const user = await this.authService.getPublicUserById(currentUser.sub);
     if (!user) throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: '登录状态无效或已过期' });

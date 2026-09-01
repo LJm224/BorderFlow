@@ -37,6 +37,10 @@ pnpm dev
 | `demo-shop` | `admin@borderflow.dev` | `admin123` |
 | `test-shop` | `admin@test.borderflow.dev` | `admin123` |
 
+同一演示商户还提供了三个权限测试账号（密码均为 `admin123`）：`operator@borderflow.dev`（运营）、`warehouse@borderflow.dev`（仓库）、`analyst@borderflow.dev`（分析）。
+
+打开 <http://localhost:5173> 即可进入登录页；商户编码使用 `demo-shop`，登录后可点击右上角“退出登录”。
+
 ## 校验
 
 ```bash

@@ -30,6 +30,18 @@ async function main() {
     },
   });
 
+  for (const demoUser of [
+    { email: 'operator@borderflow.dev', name: 'Demo Operator', role: UserRole.OPERATOR },
+    { email: 'warehouse@borderflow.dev', name: 'Demo Warehouse', role: UserRole.WAREHOUSE },
+    { email: 'analyst@borderflow.dev', name: 'Demo Analyst', role: UserRole.ANALYST },
+  ]) {
+    await prisma.user.upsert({
+      where: { tenantId_email: { tenantId: tenant.id, email: demoUser.email } },
+      update: { name: demoUser.name, role: demoUser.role, passwordHash },
+      create: { tenantId: tenant.id, name: demoUser.name, email: demoUser.email, passwordHash, role: demoUser.role },
+    });
+  }
+
   const secondTenant = await prisma.tenant.upsert({
     where: { id: 'demo-tenant-002' },
     update: { code: 'test-shop' },

@@ -2,15 +2,23 @@ import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider } from 'antd';
 import { BrowserRouter } from 'react-router-dom';
-import axios from 'axios';
 import { expect, test, vi } from 'vitest';
 import App from './App';
+import { resetAuthForTests, useAuthStore } from './auth';
 
-vi.mock('axios', () => ({
-  default: { get: vi.fn().mockResolvedValue({ data: { data: { status: 'ok' }, meta: { requestId: 'test-req' } } }) },
+vi.mock('./api', () => ({
+  API_BASE_URL: 'http://localhost:3001/api',
+  api: {
+    defaults: { headers: { common: {} } },
+    get: vi.fn().mockImplementation((path: string) => path === '/health'
+      ? Promise.resolve({ data: { data: { status: 'ok' }, meta: { requestId: 'test-req' } } })
+      : Promise.reject(new Error('not authenticated'))),
+    post: vi.fn().mockRejectedValue(new Error('not authenticated')),
+  },
 }));
 
-test('renders the BorderFlow shell', () => {
+test('renders the login page when there is no session', async () => {
+  resetAuthForTests();
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
@@ -21,6 +29,7 @@ test('renders the BorderFlow shell', () => {
       </ConfigProvider>
     </QueryClientProvider>,
   );
-  expect(screen.getByText('BorderFlow')).toBeInTheDocument();
-  expect(axios.get).toHaveBeenCalledWith('http://localhost:3001/api/health');
+  expect(await screen.findByText('登录 BorderFlow')).toBeInTheDocument();
+  expect(screen.getByLabelText('商户编码')).toBeInTheDocument();
+  expect(useAuthStore.getState().status).toBe('unauthenticated');
 });
