@@ -1,0 +1,29 @@
+node_modules/
+.pnpm-store/
+dist/
+.vite/
+.env
+.env.*
+!.env.example
+coverage/
+playwright-report/
+test-results/
+*.log
+*.tsbuildinfo
+
+# Local editor / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+*.bak
+
+# BorderFlow project specification and Vibe Coding planning documents
+BORDERFLOW_PROJECT_SPEC.md
+BORDERFLOW_VIBE_CODING_EXECUTION_PLAN.md
+
+# Local AI/Vibe Coding execution evidence
+docs/evidence/

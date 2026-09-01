@@ -1,0 +1,15 @@
+{
+  "name": "borderflow",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @borderflow/web --filter @borderflow/api dev",
+    "dev:web": "pnpm --filter @borderflow/web dev",
+    "dev:api": "pnpm --filter @borderflow/api dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  }
+}

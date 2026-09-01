@@ -1,0 +1,41 @@
+{
+  "name": "@borderflow/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nest start --watch",
+    "start:prod": "node dist/main.js",
+    "build": "nest build",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@borderflow/shared": "workspace:*",
+    "@nestjs/common": "^11.0.3",
+    "@nestjs/core": "^11.0.3",
+    "@nestjs/platform-express": "^11.0.3",
+    "@nestjs/swagger": "^8.1.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "jose": "^5.9.6",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "@prisma/client": "^6.1.0"
+  },
+  "prisma": { "seed": "tsx prisma/seed.ts" },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.3",
+    "prisma": "^6.1.0",
+    "tsx": "^4.19.2",
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
