@@ -7,9 +7,10 @@ const prisma = new PrismaClient();
 async function main() {
   const tenant = await prisma.tenant.upsert({
     where: { id: 'demo-tenant-001' },
-    update: {},
+    update: { code: 'demo-shop' },
     create: {
       id: 'demo-tenant-001',
+      code: 'demo-shop',
       name: 'BorderFlow Demo Store',
       defaultCurrency: Currency.USD,
       defaultTimezone: 'Asia/Shanghai',
@@ -24,6 +25,29 @@ async function main() {
       tenantId: tenant.id,
       name: 'Demo Admin',
       email: 'admin@borderflow.dev',
+      passwordHash,
+      role: UserRole.ADMIN,
+    },
+  });
+
+  const secondTenant = await prisma.tenant.upsert({
+    where: { id: 'demo-tenant-002' },
+    update: { code: 'test-shop' },
+    create: {
+      id: 'demo-tenant-002',
+      code: 'test-shop',
+      name: 'BorderFlow Test Store',
+      defaultCurrency: Currency.USD,
+      defaultTimezone: 'UTC',
+    },
+  });
+  await prisma.user.upsert({
+    where: { tenantId_email: { tenantId: secondTenant.id, email: 'admin@test.borderflow.dev' } },
+    update: {},
+    create: {
+      tenantId: secondTenant.id,
+      name: 'Test Admin',
+      email: 'admin@test.borderflow.dev',
       passwordHash,
       role: UserRole.ADMIN,
     },

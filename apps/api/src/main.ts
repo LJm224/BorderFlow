@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import 'dotenv/config';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -13,7 +14,7 @@ async function bootstrap() {
   app.useLogger(logger);
   app.flushLogs();
   app.setGlobalPrefix('api');
-  app.enableCors({ origin: process.env.WEB_ORIGIN ?? 'http://localhost:5173' });
+  app.enableCors({ origin: process.env.WEB_ORIGIN ?? 'http://localhost:5173', credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalInterceptors(new ResponseEnvelopeInterceptor());
   app.useGlobalFilters(new ApiExceptionFilter(logger));

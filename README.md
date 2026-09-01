@@ -28,6 +28,15 @@ pnpm dev
 - API：<http://localhost:3001/api/health>
 - Swagger：<http://localhost:3001/docs>
 
+## BF-009 演示账号
+
+登录需要填写商户编码、邮箱和密码：
+
+| 商户编码 | 邮箱 | 密码 |
+| --- | --- | --- |
+| `demo-shop` | `admin@borderflow.dev` | `admin123` |
+| `test-shop` | `admin@test.borderflow.dev` | `admin123` |
+
 ## 校验
 
 ```bash

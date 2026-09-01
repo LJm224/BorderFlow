@@ -81,6 +81,7 @@ enum MediaType {
 
 model Tenant {
   id              String   @id @default(uuid())
+  code            String   @unique
   name            String
   defaultCurrency Currency @default(USD)
   defaultTimezone String   @default("UTC")
@@ -136,9 +137,26 @@ model User {
   aiRuns       AiGenerationRecord[]
   auditLogs    AuditLog[]
   timelineEvents OrderTimelineEvent[]
+  refreshSessions RefreshSession[]
 
   @@unique([tenantId, email])
   @@index([tenantId, role])
+}
+
+model RefreshSession {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  userAgent  String?
+  ipAddress  String?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
 }
 
 model Product {
