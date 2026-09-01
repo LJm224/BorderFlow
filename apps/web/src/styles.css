@@ -19,3 +19,4 @@ body { margin: 0; min-width: 320px; }
 .product-toolbar { margin-bottom: 16px; }
 .muted { color: #667085; font-size: 12px; margin-top: 4px; }
 .order-status-control { margin: 24px 0; min-width: 180px; }
+.inventory-summary { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 12px; }

@@ -7,6 +7,7 @@ import { useAuthStore } from './auth';
 import { ApiSuccess } from '@borderflow/shared';
 import ProductsPage from './ProductsPage';
 import OrdersPage from './OrdersPage';
+import InventoryPage from './InventoryPage';
 
 const { Header, Content, Sider } = Layout;
 function HealthBadge() {
@@ -102,7 +103,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/inventory" element={<Placeholder name="库存" />} />
+            <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/integrations/shopify" element={<Placeholder name="Shopify-ready 集成" />} />
           </Routes>
         </Content>
