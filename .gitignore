@@ -10,6 +10,7 @@ playwright-report/
 test-results/
 *.log
 *.tsbuildinfo
+docs/
 
 # Local editor / OS files
 .vscode/

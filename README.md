@@ -10,7 +10,7 @@
 
 - Node.js 20+（当前开发机已检测到 Node.js 24）
 - pnpm 10+
-- Docker Desktop（用于 PostgreSQL）
+- Docker Desktop（用于 PostgreSQL，项目映射到宿主机 `15432` 端口）
 
 ## 启动
 
@@ -36,5 +36,3 @@ pnpm typecheck
 pnpm test
 pnpm build
 ```
-
-详细执行顺序见 [BORDERFLOW_VIBE_CODING_EXECUTION_PLAN.md](./BORDERFLOW_VIBE_CODING_EXECUTION_PLAN.md)。

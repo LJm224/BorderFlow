@@ -38,6 +38,15 @@ export const AI_RUN_STATUSES = [
 ] as const;
 export type AiRunStatus = (typeof AI_RUN_STATUSES)[number];
 
+export const CHANNEL_TYPES = ['SHOPIFY', 'AMAZON', 'SHOPLINE'] as const;
+export type ChannelType = (typeof CHANNEL_TYPES)[number];
+
+export const CONNECTION_STATUSES = ['CONNECTED', 'DISCONNECTED', 'ERROR'] as const;
+export type ConnectionStatus = (typeof CONNECTION_STATUSES)[number];
+
+export const MEDIA_TYPES = ['IMAGE', 'VIDEO'] as const;
+export type MediaType = (typeof MEDIA_TYPES)[number];
+
 export interface ApiMeta {
   requestId: string;
 }

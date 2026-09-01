@@ -11,6 +11,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",
     "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "prisma:status": "prisma migrate status",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts"
   },
@@ -25,7 +27,9 @@
     "jose": "^5.9.6",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "@prisma/client": "^6.1.0"
+    "@prisma/client": "^6.1.0",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.7"
   },
   "prisma": { "seed": "tsx prisma/seed.ts" },
   "devDependencies": {
@@ -35,6 +39,7 @@
     "prisma": "^6.1.0",
     "tsx": "^4.19.2",
     "@types/node": "^22.10.5",
+    "@types/bcryptjs": "^2.4.6",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }
