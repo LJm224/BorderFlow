@@ -40,4 +40,22 @@ describe('InventoryService', () => {
     prisma.inventory.findFirst.mockResolvedValue(null);
     await expect(new InventoryService(prisma as never).getById('tenant-2', inventory.id)).rejects.toMatchObject({ response: { code: 'INVENTORY_NOT_FOUND' } });
   });
+
+  test('reserves stock when an order enters picking', async () => {
+    const service = new InventoryService(fakePrisma() as never);
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const create = vi.fn();
+    const transaction = { inventory: { findFirst: vi.fn().mockResolvedValue({ id: inventory.id }), updateMany }, inventoryTransaction: { create } };
+    await service.reserveForOrder(transaction as never, 'tenant-1', 'store-1', 'order-1', [{ skuId: inventory.skuId, quantity: 2 }]);
+    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: { id: inventory.id, availableQuantity: { gte: 2 } }, data: expect.objectContaining({ availableQuantity: { decrement: 2 }, lockedQuantity: { increment: 2 } }) }));
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ type: InventoryTransactionType.RESERVATION, referenceId: 'order-1' }) }));
+  });
+
+  test('releases locked stock when a picking order is cancelled', async () => {
+    const service = new InventoryService(fakePrisma() as never);
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const transaction = { inventory: { findFirst: vi.fn().mockResolvedValue({ id: inventory.id }), updateMany }, inventoryTransaction: { create: vi.fn() } };
+    await service.releaseOrder(transaction as never, 'tenant-1', 'store-1', 'order-1', [{ skuId: inventory.skuId, quantity: 2 }]);
+    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { availableQuantity: { increment: 2 }, lockedQuantity: { decrement: 2 } } }));
+  });
 });

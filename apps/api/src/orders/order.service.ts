@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { tenantWhere } from '../tenants/tenant-query.helper';
+import { InventoryService } from '../inventory/inventory.service';
 import { ListOrdersDto, UpdateOrderStatusDto } from './order.dto';
 
 const orderListInclude = {
@@ -27,7 +28,7 @@ const transitions: Record<OrderStatus, readonly OrderStatus[]> = {
 
 @Injectable()
 export class OrderService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly inventoryService: InventoryService) {}
 
   async list(tenantId: string, query: ListOrdersDto) {
     const keyword = query.keyword?.trim();
@@ -49,13 +50,17 @@ export class OrderService {
   }
 
   async updateStatus(tenantId: string, orderId: string, actorUserId: string, dto: UpdateOrderStatusDto) {
-    const order = await this.prisma.order.findFirst({ where: { id: orderId, tenantId }, select: { id: true, status: true } });
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, tenantId }, select: { id: true, status: true, storeId: true, items: { select: { skuId: true, quantity: true } } } });
     if (!order) throw this.notFound();
     if (order.status === dto.status) return this.getById(tenantId, orderId);
     if (!transitions[order.status].includes(dto.status)) {
       throw new BadRequestException({ code: 'INVALID_ORDER_TRANSITION', message: `订单不能从${order.status}变更为${dto.status}` });
     }
     await this.prisma.$transaction(async (transaction) => {
+      const items = order.items;
+      if (order.status === OrderStatus.PAID && dto.status === OrderStatus.PICKING) await this.inventoryService.reserveForOrder(transaction, tenantId, order.storeId, orderId, items);
+      if (order.status === OrderStatus.PICKING && dto.status === OrderStatus.SHIPPED) await this.inventoryService.fulfillOrder(transaction, tenantId, order.storeId, orderId, items);
+      if (order.status === OrderStatus.PICKING && dto.status === OrderStatus.CANCELLED) await this.inventoryService.releaseOrder(transaction, tenantId, order.storeId, orderId, items);
       await transaction.order.update({ where: { id: orderId }, data: { status: dto.status } });
       await transaction.orderTimelineEvent.create({ data: { orderId, fromStatus: order.status, toStatus: dto.status, eventType: 'STATUS_CHANGE', note: dto.note?.trim() || undefined, actorUserId } });
     });

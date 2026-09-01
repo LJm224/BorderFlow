@@ -49,6 +49,36 @@ export class InventoryService {
     return this.getById(tenantId, inventory.id);
   }
 
+  async reserveForOrder(transaction: Prisma.TransactionClient, tenantId: string, storeId: string, orderId: string, items: Array<{ skuId: string; quantity: number }>): Promise<void> {
+    for (const item of items) {
+      const inventory = await transaction.inventory.findFirst({ where: { skuId: item.skuId, warehouse: { store: { id: storeId, tenantId } } }, select: { id: true } });
+      if (!inventory) throw new BadRequestException({ code: 'INVENTORY_NOT_FOUND', message: '订单商品没有对应库存' });
+      const updated = await transaction.inventory.updateMany({ where: { id: inventory.id, availableQuantity: { gte: item.quantity } }, data: { availableQuantity: { decrement: item.quantity }, lockedQuantity: { increment: item.quantity } } });
+      if (updated.count !== 1) throw new BadRequestException({ code: 'INSUFFICIENT_STOCK', message: '订单商品库存不足，无法拣货' });
+      await transaction.inventoryTransaction.create({ data: { skuId: item.skuId, type: InventoryTransactionType.RESERVATION, quantity: item.quantity, referenceId: orderId, reason: '订单锁定库存' } });
+    }
+  }
+
+  async fulfillOrder(transaction: Prisma.TransactionClient, tenantId: string, storeId: string, orderId: string, items: Array<{ skuId: string; quantity: number }>): Promise<void> {
+    for (const item of items) {
+      const inventory = await transaction.inventory.findFirst({ where: { skuId: item.skuId, warehouse: { store: { id: storeId, tenantId } } }, select: { id: true } });
+      if (!inventory) throw new BadRequestException({ code: 'INVENTORY_NOT_FOUND', message: '订单商品没有对应库存' });
+      const updated = await transaction.inventory.updateMany({ where: { id: inventory.id, lockedQuantity: { gte: item.quantity } }, data: { lockedQuantity: { decrement: item.quantity } } });
+      if (updated.count !== 1) throw new BadRequestException({ code: 'INSUFFICIENT_LOCKED_STOCK', message: '锁定库存不足，无法发货' });
+      await transaction.inventoryTransaction.create({ data: { skuId: item.skuId, type: InventoryTransactionType.SALE, quantity: item.quantity, referenceId: orderId, reason: '订单发货扣减库存' } });
+    }
+  }
+
+  async releaseOrder(transaction: Prisma.TransactionClient, tenantId: string, storeId: string, orderId: string, items: Array<{ skuId: string; quantity: number }>): Promise<void> {
+    for (const item of items) {
+      const inventory = await transaction.inventory.findFirst({ where: { skuId: item.skuId, warehouse: { store: { id: storeId, tenantId } } }, select: { id: true } });
+      if (!inventory) throw new BadRequestException({ code: 'INVENTORY_NOT_FOUND', message: '订单商品没有对应库存' });
+      const updated = await transaction.inventory.updateMany({ where: { id: inventory.id, lockedQuantity: { gte: item.quantity } }, data: { availableQuantity: { increment: item.quantity }, lockedQuantity: { decrement: item.quantity } } });
+      if (updated.count !== 1) throw new BadRequestException({ code: 'INSUFFICIENT_LOCKED_STOCK', message: '锁定库存不足，无法释放' });
+      await transaction.inventoryTransaction.create({ data: { skuId: item.skuId, type: InventoryTransactionType.RELEASE, quantity: item.quantity, referenceId: orderId, reason: '订单取消释放库存' } });
+    }
+  }
+
   private notFound(): NotFoundException {
     return new NotFoundException({ code: 'INVENTORY_NOT_FOUND', message: '库存记录不存在' });
   }
