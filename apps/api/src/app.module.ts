@@ -6,8 +6,9 @@ import { TenantModule } from './tenants/tenant.module';
 import { PinoLogger } from './infrastructure/pino.logger';
 import { RequestIdMiddleware } from './infrastructure/request-id.middleware';
 import { ProductModule } from './products/product.module';
+import { OrderModule } from './orders/order.module';
 
-@Module({ imports: [DatabaseModule, TenantModule, AuthModule, ProductModule, HealthModule], providers: [PinoLogger], exports: [PinoLogger] })
+@Module({ imports: [DatabaseModule, TenantModule, AuthModule, ProductModule, OrderModule, HealthModule], providers: [PinoLogger], exports: [PinoLogger] })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(RequestIdMiddleware).forRoutes({ path: '*path', method: RequestMethod.ALL });
