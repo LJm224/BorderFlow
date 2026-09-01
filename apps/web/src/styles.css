@@ -13,3 +13,8 @@ body { margin: 0; min-width: 320px; }
 .login-card { width: min(420px, calc(100vw - 32px)); box-shadow: 0 16px 40px rgb(16 24 40 / 8%); }
 .login-error { margin-bottom: 16px; }
 .topbar-actions { display: flex; align-items: center; gap: 16px; }
+.products-page { background: #fff; border: 1px solid #eaecf0; border-radius: 12px; padding: 24px; }
+.page-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.page-heading h2 { margin: 0 0 4px; }
+.product-toolbar { margin-bottom: 16px; }
+.muted { color: #667085; font-size: 12px; margin-top: 4px; }
