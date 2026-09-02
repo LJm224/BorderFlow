@@ -46,6 +46,11 @@ enum InventoryTransactionType {
   ADJUSTMENT
 }
 
+enum OrderSource {
+  MANUAL
+  SHOPIFY
+}
+
 enum InventoryAllocationStatus {
   RESERVED
   FULFILLED
@@ -99,6 +104,7 @@ model Tenant {
   aiRuns          AiGenerationRecord[]
   auditLogs       AuditLog[]
   connections     ChannelConnection[]
+  channelSkuMappings ChannelSkuMapping[]
 }
 
 model Store {
@@ -229,6 +235,7 @@ model Sku {
   orderItems            OrderItem[]
   inventories           Inventory[]
   inventoryTransactions InventoryTransaction[]
+  channelMappings       ChannelSkuMapping[]
 
   @@unique([productId, skuCode])
   @@index([skuCode])
@@ -243,6 +250,9 @@ model Order {
   currency        Currency
   totalAmount     Decimal     @db.Decimal(18, 2)
   status          OrderStatus @default(PENDING_PAYMENT)
+  source          OrderSource @default(MANUAL)
+  externalOrderId String?
+  channelConnectionId String?
   shippingCountry String
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -251,8 +261,10 @@ model Order {
   items           OrderItem[]
   timelineEvents  OrderTimelineEvent[]
   inventoryAllocations InventoryAllocation[]
+  channelConnection ChannelConnection? @relation(fields: [channelConnectionId], references: [id])
 
   @@unique([tenantId, orderNo])
+  @@unique([channelConnectionId, externalOrderId])
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
 }
@@ -388,9 +400,28 @@ model ChannelConnection {
   tenant          Tenant           @relation(fields: [tenantId], references: [id])
   store           Store            @relation(fields: [storeId], references: [id])
   syncRuns        ChannelSyncRun[]
+  orders          Order[]
+  skuMappings     ChannelSkuMapping[]
 
   @@unique([storeId, channelType])
   @@index([tenantId, status])
+}
+
+model ChannelSkuMapping {
+  id             String            @id @default(uuid())
+  tenantId       String
+  connectionId   String
+  skuId          String
+  externalSku    String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  tenant         Tenant            @relation(fields: [tenantId], references: [id])
+  connection     ChannelConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  sku            Sku               @relation(fields: [skuId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalSku])
+  @@unique([connectionId, skuId])
+  @@index([tenantId, externalSku])
 }
 
 model ChannelSyncRun {

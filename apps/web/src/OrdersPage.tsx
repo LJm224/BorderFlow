@@ -1,4 +1,4 @@
-import { Button, Descriptions, Drawer, Input, message, Select, Space, Table, Tag, Timeline, Typography } from 'antd';
+import { Button, Descriptions, Drawer, Form, Input, InputNumber, message, Modal, Select, Space, Table, Tag, Timeline, Typography } from 'antd';
 import type { TablePaginationConfig } from 'antd';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +11,8 @@ interface OrderAllocation { id: string; quantity: number; status: 'RESERVED' | '
 interface OrderItem { id: string; quantity: number; unitPrice: string | number; sku: { skuCode: string; variantName: string; product?: { id: string; name: string } }; inventoryAllocations?: OrderAllocation[] }
 interface Order { id: string; orderNo: string; market: string; currency: string; totalAmount: string | number; status: OrderStatus; shippingCountry: string; createdAt: string; store: { name: string; channelType: string }; items: OrderItem[]; timelineEvents?: { id: string; fromStatus: OrderStatus | null; toStatus: OrderStatus | null; eventType: string; note?: string; createdAt: string }[] }
 interface OrderList { items: Order[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }
+interface Store { id: string; name: string; defaultCurrency: string; isActive: boolean }
+interface ProductOption { id: string; name: string; skus: { id: string; skuCode: string; variantName: string; price: string | number }[] }
 
 const labels: Record<OrderStatus, string> = { PENDING_PAYMENT: '待付款', PAID: '已付款', PICKING: '拣货中', SHIPPED: '已发货', COMPLETED: '已完成', CANCELLED: '已取消', REFUNDED: '已退款' };
 const statusColor: Record<OrderStatus, string> = { PENDING_PAYMENT: 'default', PAID: 'blue', PICKING: 'processing', SHIPPED: 'cyan', COMPLETED: 'green', CANCELLED: 'red', REFUNDED: 'orange' };
@@ -21,8 +23,13 @@ export default function OrdersPage() {
   const [status, setStatus] = useState<OrderStatus | undefined>();
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Order | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm] = Form.useForm();
   const queryClient = useQueryClient();
   const canFulfill = user?.role === 'ADMIN' || user?.role === 'WAREHOUSE';
+  const canCreate = user?.role === 'ADMIN' || user?.role === 'OPERATOR';
+  const stores = useQuery({ queryKey: ['stores'], queryFn: async () => (await api.get<ApiSuccess<Store[]>>('/stores')).data.data });
+  const productOptions = useQuery({ enabled: canCreate, queryKey: ['order-product-options'], queryFn: async () => (await api.get<ApiSuccess<{ items: ProductOption[] }>>('/products', { params: { pageSize: 100 } })).data.data.items });
   const orders = useQuery({
     queryKey: ['orders', keyword, status, page],
     queryFn: async () => (await api.get<ApiSuccess<OrderList>>('/orders', { params: { keyword: keyword || undefined, status, page, pageSize: 10 } })).data.data,
@@ -37,11 +44,16 @@ export default function OrdersPage() {
     onSuccess: () => { message.success('订单状态已更新'); queryClient.invalidateQueries({ queryKey: ['orders'] }); setSelected(null); },
     onError: () => message.error('状态流转不合法或没有权限'),
   });
+  const createOrder = useMutation({
+    mutationFn: (values: { storeId: string; shippingCountry: string; market?: string; currency?: string; status?: OrderStatus; items: { skuId: string; quantity: number }[] }) => api.post('/orders', values),
+    onSuccess: () => { message.success('订单已创建'); setCreateOpen(false); createForm.resetFields(); queryClient.invalidateQueries({ queryKey: ['orders'] }); },
+    onError: () => message.error('订单创建失败，请检查店铺、SKU 和库存配置'),
+  });
   const pagination: TablePaginationConfig = { current: orders.data?.pagination.page ?? page, pageSize: 10, total: orders.data?.pagination.total ?? 0, showSizeChanger: false, onChange: (nextPage) => setPage(nextPage) };
 
   const displayedOrder = orderDetail.data ?? selected;
   return <div className="products-page">
-    <div className="page-heading"><div><Typography.Title level={2}>订单与履约</Typography.Title><Typography.Text type="secondary">查看订单并处理发货流程</Typography.Text></div></div>
+    <div className="page-heading"><div><Typography.Title level={2}>订单与履约</Typography.Title><Typography.Text type="secondary">查看订单并处理发货流程</Typography.Text></div>{canCreate && <Button type="primary" onClick={() => { createForm.setFieldsValue({ status: 'PAID', items: [{}] }); setCreateOpen(true); }}>创建手工订单</Button>}</div>
     <Space wrap className="product-toolbar"><Input.Search allowClear placeholder="搜索订单号或收货国家" value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1); }} style={{ width: 300 }} /><Select allowClear placeholder="全部状态" value={status} onChange={(value) => { setStatus(value); setPage(1); }} options={Object.entries(labels).map(([value, label]) => ({ value, label }))} style={{ width: 150 }} /></Space>
     <Table rowKey="id" loading={orders.isLoading} dataSource={orders.data?.items ?? []} pagination={pagination} columns={[
       { title: '订单号', dataIndex: 'orderNo', render: (value: string, order: Order) => <Button type="link" onClick={() => setSelected(order)}>{value}</Button> },
@@ -65,6 +77,17 @@ export default function OrdersPage() {
         }))} />
       </>}
     </Drawer>
+    <Modal title="创建手工订单" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={() => createForm.submit()} confirmLoading={createOrder.isPending} okText="创建订单" cancelText="取消" destroyOnClose>
+      <Form form={createForm} layout="vertical" onFinish={(values) => createOrder.mutate(values)} initialValues={{ status: 'PAID', items: [{}] }}>
+        <Space.Compact block><Form.Item label="店铺" name="storeId" rules={[{ required: true, message: '请选择店铺' }]} style={{ width: '50%' }}><Select placeholder="选择店铺" options={(stores.data ?? []).filter((store) => store.isActive).map((store) => ({ value: store.id, label: store.name }))} /></Form.Item><Form.Item label="收货国家" name="shippingCountry" rules={[{ required: true, message: '请输入国家代码' }]} style={{ width: '50%' }}><Input placeholder="US" /></Form.Item></Space.Compact>
+        <Space.Compact block><Form.Item label="市场" name="market" style={{ width: '50%' }}><Input placeholder="默认取商品市场" /></Form.Item><Form.Item label="币种" name="currency" style={{ width: '50%' }}><Select allowClear placeholder="跟随店铺" options={['USD', 'EUR', 'GBP', 'CNY'].map((value) => ({ value }))} /></Form.Item></Space.Compact>
+        <Form.Item label="初始状态" name="status"><Select options={[{ value: 'PAID', label: '已付款（可进入拣货）' }, { value: 'PENDING_PAYMENT', label: '待付款' }]} /></Form.Item>
+        <Typography.Text strong>订单商品</Typography.Text>
+        <Form.List name="items">
+          {(fields, { add, remove }) => <>{fields.map((field) => <Space key={field.key} align="baseline" style={{ display: 'flex', marginTop: 8 }}><Form.Item {...field} name={[field.name, 'skuId']} rules={[{ required: true, message: '请选择 SKU' }]}><Select showSearch optionFilterProp="label" placeholder="选择 SKU" style={{ width: 270 }} options={(productOptions.data ?? []).flatMap((product) => product.skus.map((sku) => ({ value: sku.id, label: `${sku.skuCode} · ${product.name}` })))} /></Form.Item><Form.Item {...field} name={[field.name, 'quantity']} rules={[{ required: true, message: '请输入数量' }]}><InputNumber min={1} precision={0} placeholder="数量" /></Form.Item>{fields.length > 1 && <Button type="link" onClick={() => remove(field.name)}>移除</Button>}</Space>)}<Button type="dashed" onClick={() => add()} block>+ 添加商品</Button></>}
+        </Form.List>
+      </Form>
+    </Modal>
   </div>;
 }
 

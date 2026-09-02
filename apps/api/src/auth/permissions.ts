@@ -6,7 +6,12 @@ export const PERMISSIONS = [
   'product:approve',
   'ai:run',
   'order:read',
+  'order:write',
   'order:fulfill',
+  'store:read',
+  'store:write',
+  'channel:read',
+  'channel:write',
   'inventory:read',
   'inventory:write',
   'dashboard:read',
@@ -19,9 +24,9 @@ export type Permission = (typeof PERMISSIONS)[number];
 
 export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   ADMIN: PERMISSIONS,
-  OPERATOR: ['product:read', 'product:write', 'product:approve', 'ai:run', 'order:read', 'dashboard:read'],
-  WAREHOUSE: ['order:read', 'order:fulfill', 'inventory:read', 'inventory:write', 'dashboard:read'],
-  ANALYST: ['product:read', 'order:read', 'inventory:read', 'dashboard:read', 'report:export', 'audit:read'],
+  OPERATOR: ['product:read', 'product:write', 'product:approve', 'ai:run', 'order:read', 'order:write', 'store:read', 'store:write', 'channel:read', 'channel:write', 'dashboard:read'],
+  WAREHOUSE: ['order:read', 'order:fulfill', 'inventory:read', 'inventory:write', 'store:read', 'channel:read', 'dashboard:read'],
+  ANALYST: ['product:read', 'order:read', 'inventory:read', 'store:read', 'channel:read', 'dashboard:read', 'report:export', 'audit:read'],
 };
 
 export function roleHasPermission(role: UserRole, permission: Permission): boolean {

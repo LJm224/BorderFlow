@@ -10,6 +10,8 @@ import OrdersPage from './OrdersPage';
 import InventoryPage from './InventoryPage';
 import ProductDetailPage from './ProductDetailPage';
 import AuditLogsPage from './AuditLogsPage';
+import StoresPage from './StoresPage';
+import ShopifyPage from './ShopifyPage';
 
 const { Header, Content, Sider } = Layout;
 
@@ -18,6 +20,7 @@ const navItems = [
   { to: '/products', label: '商品与 SKU', short: '商品', glyph: '◈' },
   { to: '/orders', label: '订单与履约', short: '订单', glyph: '▤' },
   { to: '/inventory', label: '库存管理', short: '库存', glyph: '▦' },
+  { to: '/stores', label: '店铺与仓库', short: '店铺', glyph: '⌂' },
   { to: '/audit-logs', label: '审计日志', short: '日志', glyph: '◷' },
 ];
 
@@ -26,6 +29,7 @@ const pageMeta: Record<string, { eyebrow: string; title: string }> = {
   '/products': { eyebrow: 'CATALOG / PRODUCTS', title: '商品与 SKU' },
   '/orders': { eyebrow: 'COMMERCE / FULFILLMENT', title: '订单与履约' },
   '/inventory': { eyebrow: 'OPERATIONS / INVENTORY', title: '库存管理' },
+  '/stores': { eyebrow: 'OPERATIONS / STORES', title: '店铺与仓库' },
   '/audit-logs': { eyebrow: 'SECURITY / AUDIT', title: '审计日志' },
   '/integrations/shopify': { eyebrow: 'CHANNELS / INTEGRATIONS', title: 'Shopify 集成' },
 };
@@ -151,7 +155,8 @@ export default function App() {
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/audit-logs" element={<AuditLogsPage />} />
-            <Route path="/integrations/shopify" element={<Placeholder name="Shopify-ready 集成" />} />
+            <Route path="/stores" element={<StoresPage />} />
+            <Route path="/integrations/shopify" element={<ShopifyPage />} />
           </Routes>
         </Content>
       </Layout>

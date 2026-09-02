@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { OrderSource, OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { tenantWhere } from '../tenants/tenant-query.helper';
 import { InventoryService } from '../inventory/inventory.service';
-import { ListOrdersDto, UpdateOrderStatusDto } from './order.dto';
+import { CreateOrderDto, ListOrdersDto, UpdateOrderStatusDto } from './order.dto';
 import { AuditLogService } from '../audit/audit.service';
 
 const orderListInclude = {
@@ -48,6 +48,48 @@ export class OrderService {
     const order = await this.prisma.order.findFirst({ where: { id: orderId, tenantId }, include: orderDetailInclude });
     if (!order) throw this.notFound();
     return order;
+  }
+
+  async create(tenantId: string, actorUserId: string, dto: CreateOrderDto) {
+    if (!dto.items?.length) throw new BadRequestException({ code: 'ORDER_ITEMS_REQUIRED', message: '订单至少需要一个商品' });
+    if (dto.status && dto.status !== OrderStatus.PAID && dto.status !== OrderStatus.PENDING_PAYMENT) throw new BadRequestException({ code: 'INVALID_INITIAL_STATUS', message: '手工订单初始状态只能是待付款或已付款' });
+    const uniqueSkuIds = new Set(dto.items.map((item) => item.skuId));
+    if (uniqueSkuIds.size !== dto.items.length) throw new BadRequestException({ code: 'DUPLICATE_SKU', message: '同一订单中的 SKU 不能重复，请合并数量' });
+    const store = await this.prisma.store.findFirst({ where: { id: dto.storeId, tenantId } });
+    if (!store) throw new NotFoundException({ code: 'STORE_NOT_FOUND', message: '店铺不存在' });
+    if (!store.isActive) throw new BadRequestException({ code: 'STORE_INACTIVE', message: '店铺已停用，不能创建订单' });
+    const skus = await this.prisma.sku.findMany({ where: { id: { in: [...uniqueSkuIds] }, product: { tenantId } }, include: { product: { select: { market: true, currency: true, status: true } } } });
+    if (skus.length !== uniqueSkuIds.size) throw new BadRequestException({ code: 'SKU_NOT_FOUND', message: '存在不属于当前商户的 SKU' });
+    if (skus.some((sku) => sku.product.status === 'OFFLINE')) throw new BadRequestException({ code: 'SKU_PRODUCT_OFFLINE', message: '下架商品不能创建订单' });
+    const skuById = new Map(skus.map((sku) => [sku.id, sku]));
+    const currency = dto.currency ?? store.defaultCurrency;
+    const market = dto.market?.trim().toUpperCase() || skus[0].product.market;
+    const totalAmount = dto.items.reduce((sum, item) => {
+      const sku = skuById.get(item.skuId)!;
+      return sum.add(new Prisma.Decimal(item.unitPrice ?? sku.price).mul(item.quantity));
+    }, new Prisma.Decimal(0));
+    const orderNo = dto.orderNo?.trim() || `BF-MANUAL-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+    const status = dto.status === OrderStatus.PAID ? OrderStatus.PAID : OrderStatus.PENDING_PAYMENT;
+    const orderId = await this.prisma.$transaction(async (transaction) => {
+      const created = await transaction.order.create({
+        data: {
+          tenantId,
+          storeId: dto.storeId,
+          orderNo,
+          market,
+          currency,
+          totalAmount,
+          status,
+          source: OrderSource.MANUAL,
+          shippingCountry: dto.shippingCountry.trim().toUpperCase(),
+          items: { create: dto.items.map((item) => ({ skuId: item.skuId, quantity: item.quantity, unitPrice: item.unitPrice ?? skuById.get(item.skuId)!.price })) },
+          timelineEvents: { create: { fromStatus: null, toStatus: status, eventType: 'ORDER_CREATED', note: '手工创建订单', actorUserId } },
+        },
+      });
+      await this.auditLogService?.record(tenantId, actorUserId, 'ORDER_CREATED', 'Order', created.id, { source: OrderSource.MANUAL, orderNo: created.orderNo, status: created.status }, transaction);
+      return created.id;
+    });
+    return this.getById(tenantId, orderId);
   }
 
   async updateStatus(tenantId: string, orderId: string, actorUserId: string, dto: UpdateOrderStatusDto) {

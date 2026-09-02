@@ -130,6 +130,11 @@ async function main() {
     update: {},
     create: { tenantId: tenant.id, storeId: store.id, channelType: ChannelType.SHOPIFY, externalStoreId: 'demo-shopify-store', status: ConnectionStatus.CONNECTED },
   });
+  await prisma.channelSkuMapping.upsert({
+    where: { connectionId_skuId: { connectionId: connection.id, skuId: sku.id } },
+    update: { externalSku: sku.skuCode },
+    create: { tenantId: tenant.id, connectionId: connection.id, skuId: sku.id, externalSku: sku.skuCode },
+  });
   await prisma.channelSyncRun.create({ data: { connectionId: connection.id, status: 'COMPLETED', totalItems: 1, successItems: 1, finishedAt: new Date() } });
 }
 
