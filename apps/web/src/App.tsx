@@ -8,6 +8,8 @@ import { ApiSuccess } from '@borderflow/shared';
 import ProductsPage from './ProductsPage';
 import OrdersPage from './OrdersPage';
 import InventoryPage from './InventoryPage';
+import ProductDetailPage from './ProductDetailPage';
+import AuditLogsPage from './AuditLogsPage';
 
 const { Header, Content, Sider } = Layout;
 
@@ -16,6 +18,7 @@ const navItems = [
   { to: '/products', label: '商品与 SKU', short: '商品', glyph: '◈' },
   { to: '/orders', label: '订单与履约', short: '订单', glyph: '▤' },
   { to: '/inventory', label: '库存管理', short: '库存', glyph: '▦' },
+  { to: '/audit-logs', label: '审计日志', short: '日志', glyph: '◷' },
 ];
 
 const pageMeta: Record<string, { eyebrow: string; title: string }> = {
@@ -23,6 +26,7 @@ const pageMeta: Record<string, { eyebrow: string; title: string }> = {
   '/products': { eyebrow: 'CATALOG / PRODUCTS', title: '商品与 SKU' },
   '/orders': { eyebrow: 'COMMERCE / FULFILLMENT', title: '订单与履约' },
   '/inventory': { eyebrow: 'OPERATIONS / INVENTORY', title: '库存管理' },
+  '/audit-logs': { eyebrow: 'SECURITY / AUDIT', title: '审计日志' },
   '/integrations/shopify': { eyebrow: 'CHANNELS / INTEGRATIONS', title: 'Shopify 集成' },
 };
 function HealthBadge() {
@@ -133,7 +137,7 @@ export default function App() {
       <Sider breakpoint="md" collapsedWidth="0" theme="light" className="app-sider" collapsed={isMobile ? !mobileNavOpen : siderCollapsed} onCollapse={(collapsed) => { setSiderCollapsed(collapsed); if (isMobile) setMobileNavOpen(!collapsed); }} onBreakpoint={(broken) => { setIsMobile(broken); if (broken) setMobileNavOpen(false); }}>
         <div className="brand"><span className="brand-mark">B</span><span>Border<span className="brand-accent">Flow</span></span></div>
         <div className="workspace-switcher"><span className="workspace-logo">DS</span><span><strong>{user?.tenant.name ?? 'Demo Store'}</strong><small>商家工作空间</small></span><span className="switcher-chevron">⌄</span></div>
-        <nav className="nav"><span className="nav-label">工作台</span>{navItems.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={() => isMobile && setMobileNavOpen(false)}><span className="nav-glyph">{item.glyph}</span>{item.label}</NavLink>)}<span className="nav-label nav-label-spaced">渠道与设置</span><NavLink to="/integrations/shopify" onClick={() => isMobile && setMobileNavOpen(false)}><span className="nav-glyph">⌁</span>销售渠道<span className="nav-badge">4</span></NavLink><a href="#settings"><span className="nav-glyph">⚙</span>偏好设置</a></nav>
+        <nav className="nav"><span className="nav-label">工作台</span>{navItems.filter((item) => item.to !== '/audit-logs' || user?.role === 'ADMIN' || user?.role === 'ANALYST').map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={() => isMobile && setMobileNavOpen(false)}><span className="nav-glyph">{item.glyph}</span>{item.label}</NavLink>)}<span className="nav-label nav-label-spaced">渠道与设置</span><NavLink to="/integrations/shopify" onClick={() => isMobile && setMobileNavOpen(false)}><span className="nav-glyph">⌁</span>销售渠道<span className="nav-badge">4</span></NavLink><a href="#settings"><span className="nav-glyph">⚙</span>偏好设置</a></nav>
         <div className="sider-bottom"><div className="help-card"><span className="help-icon">?</span><div><strong>需要帮助？</strong><small>查看帮助中心</small></div><span>→</span></div><div className="sider-user"><Avatar size={32} style={{background:'#e4e1ff', color:'#5b52d9'}}>{(user?.name ?? 'U').slice(0,1).toUpperCase()}</Avatar><div><strong>{user?.name ?? 'Operator'}</strong><small>{user?.role === 'ADMIN' ? '管理员' : '运营成员'}</small></div><Button type="text" aria-label="退出登录" onClick={() => void logout()}>⋯</Button></div></div>
       </Sider>
       {isMobile && mobileNavOpen && <div className="mobile-nav-scrim" aria-hidden="true" onClick={() => setMobileNavOpen(false)} />}
@@ -143,8 +147,10 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products/:id" element={<ProductDetailPage />} />
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/audit-logs" element={<AuditLogsPage />} />
             <Route path="/integrations/shopify" element={<Placeholder name="Shopify-ready 集成" />} />
           </Routes>
         </Content>

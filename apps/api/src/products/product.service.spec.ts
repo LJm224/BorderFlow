@@ -51,4 +51,15 @@ describe('ProductService', () => {
     await expect(service.getById('tenant-2', product.id)).rejects.toMatchObject({ response: { code: 'PRODUCT_NOT_FOUND' } });
     expect(prisma.product.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: product.id, tenantId: 'tenant-2' } }));
   });
+
+  test('allows only the next product status in the review workflow', async () => {
+    const prisma = fakePrisma();
+    const service = new ProductService(prisma as never);
+
+    await service.updateStatus('tenant-1', product.id, { status: ProductStatus.PENDING_REVIEW });
+    expect(prisma.product.update).toHaveBeenCalledWith(expect.objectContaining({ data: { status: ProductStatus.PENDING_REVIEW } }));
+
+    prisma.product.findFirst.mockResolvedValue({ ...product, status: ProductStatus.DRAFT });
+    await expect(service.updateStatus('tenant-1', product.id, { status: ProductStatus.PUBLISHED })).rejects.toMatchObject({ response: { code: 'INVALID_PRODUCT_TRANSITION' } });
+  });
 });

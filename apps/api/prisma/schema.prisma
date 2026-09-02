@@ -46,6 +46,12 @@ enum InventoryTransactionType {
   ADJUSTMENT
 }
 
+enum InventoryAllocationStatus {
+  RESERVED
+  FULFILLED
+  RELEASED
+}
+
 enum AiRunStatus {
   IDLE
   RUNNING
@@ -137,6 +143,7 @@ model User {
   aiRuns       AiGenerationRecord[]
   auditLogs    AuditLog[]
   timelineEvents OrderTimelineEvent[]
+  inventoryTransactions InventoryTransaction[]
   refreshSessions RefreshSession[]
 
   @@unique([tenantId, email])
@@ -243,6 +250,7 @@ model Order {
   store           Store       @relation(fields: [storeId], references: [id])
   items           OrderItem[]
   timelineEvents  OrderTimelineEvent[]
+  inventoryAllocations InventoryAllocation[]
 
   @@unique([tenantId, orderNo])
   @@index([tenantId, status])
@@ -272,6 +280,7 @@ model OrderItem {
   unitPrice Decimal @db.Decimal(18, 2)
   order     Order   @relation(fields: [orderId], references: [id])
   sku       Sku     @relation(fields: [skuId], references: [id])
+  inventoryAllocations InventoryAllocation[]
 }
 
 model Inventory {
@@ -284,22 +293,51 @@ model Inventory {
   updatedAt         DateTime @updatedAt
   sku               Sku      @relation(fields: [skuId], references: [id])
   warehouse         Warehouse @relation(fields: [warehouseId], references: [id])
+  transactions      InventoryTransaction[]
+  allocations       InventoryAllocation[]
 
   @@unique([skuId, warehouseId])
   @@index([warehouseId])
 }
 
 model InventoryTransaction {
-  id          String                    @id @default(uuid())
-  skuId       String
-  type        InventoryTransactionType
-  quantity    Int
-  referenceId String?
-  reason      String?
-  createdAt   DateTime                  @default(now())
-  sku         Sku                       @relation(fields: [skuId], references: [id])
+  id               String                    @id @default(uuid())
+  skuId            String
+  inventoryId      String?
+  actorUserId      String?
+  type             InventoryTransactionType
+  quantity         Int
+  referenceId      String?
+  reason           String?
+  beforeAvailable  Int?
+  afterAvailable   Int?
+  beforeLocked     Int?
+  afterLocked      Int?
+  createdAt        DateTime                  @default(now())
+  sku              Sku                       @relation(fields: [skuId], references: [id])
+  inventory        Inventory?                @relation(fields: [inventoryId], references: [id])
+  actor            User?                     @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([skuId, createdAt])
+  @@index([inventoryId, createdAt])
+}
+
+model InventoryAllocation {
+  id          String                   @id @default(uuid())
+  orderId     String
+  orderItemId String
+  inventoryId String
+  quantity    Int
+  status      InventoryAllocationStatus @default(RESERVED)
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  order       Order                    @relation(fields: [orderId], references: [id])
+  orderItem   OrderItem                @relation(fields: [orderItemId], references: [id])
+  inventory   Inventory                @relation(fields: [inventoryId], references: [id])
+
+  @@index([orderId, status])
+  @@index([orderItemId, status])
+  @@index([inventoryId, status])
 }
 
 model AiGenerationRecord {

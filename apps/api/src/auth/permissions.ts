@@ -11,6 +11,7 @@ export const PERMISSIONS = [
   'inventory:write',
   'dashboard:read',
   'report:export',
+  'audit:read',
   'user:manage',
 ] as const;
 
@@ -20,7 +21,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   ADMIN: PERMISSIONS,
   OPERATOR: ['product:read', 'product:write', 'product:approve', 'ai:run', 'order:read', 'dashboard:read'],
   WAREHOUSE: ['order:read', 'order:fulfill', 'inventory:read', 'inventory:write', 'dashboard:read'],
-  ANALYST: ['product:read', 'order:read', 'inventory:read', 'dashboard:read', 'report:export'],
+  ANALYST: ['product:read', 'order:read', 'inventory:read', 'dashboard:read', 'report:export', 'audit:read'],
 };
 
 export function roleHasPermission(role: UserRole, permission: Permission): boolean {

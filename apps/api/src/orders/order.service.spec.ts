@@ -40,7 +40,7 @@ describe('OrderService', () => {
     const inventoryService = { reserveForOrder: vi.fn(), fulfillOrder: vi.fn(), releaseOrder: vi.fn() };
     const service = new OrderService(prisma as never, inventoryService as never);
     await service.updateStatus('tenant-1', order.id, 'user-1', { status: OrderStatus.PICKING, note: '开始拣货' });
-    expect(inventoryService.reserveForOrder).toHaveBeenCalledWith(transaction, 'tenant-1', order.storeId, order.id, order.items);
+    expect(inventoryService.reserveForOrder).toHaveBeenCalledWith(transaction, 'tenant-1', order.storeId, order.id, order.items, 'user-1');
     expect(transaction.order.update).toHaveBeenCalledWith({ where: { id: order.id }, data: { status: OrderStatus.PICKING } });
     expect(transaction.orderTimelineEvent.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ actorUserId: 'user-1', fromStatus: OrderStatus.PAID, toStatus: OrderStatus.PICKING }) }));
   });

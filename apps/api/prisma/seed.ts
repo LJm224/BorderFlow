@@ -105,7 +105,7 @@ async function main() {
     update: {},
     create: { id: 'demo-media-001', productId: product.id, url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62', mediaType: MediaType.IMAGE, altText: 'Demo travel backpack', sortOrder: 0 },
   });
-  await prisma.inventory.upsert({
+  const inventory = await prisma.inventory.upsert({
     where: { skuId_warehouseId: { skuId: sku.id, warehouseId: warehouse.id } },
     update: {},
     create: { skuId: sku.id, warehouseId: warehouse.id, availableQuantity: 48, lockedQuantity: 3, alertThreshold: 10 },
@@ -124,7 +124,7 @@ async function main() {
     data: [{ orderId: order.id, fromStatus: null, toStatus: OrderStatus.PAID, eventType: 'STATUS_CHANGE', note: 'Demo seed order', actorUserId: admin.id }],
     skipDuplicates: true,
   });
-  await prisma.inventoryTransaction.create({ data: { skuId: sku.id, type: InventoryTransactionType.RESTOCK, quantity: 51, referenceId: 'seed', reason: 'Initial demo stock' } });
+  await prisma.inventoryTransaction.create({ data: { skuId: sku.id, inventoryId: inventory.id, actorUserId: admin.id, type: InventoryTransactionType.RESTOCK, quantity: 51, referenceId: 'seed', reason: 'Initial demo stock', beforeAvailable: 0, afterAvailable: 51, beforeLocked: 0, afterLocked: 0 } });
   const connection = await prisma.channelConnection.upsert({
     where: { storeId_channelType: { storeId: store.id, channelType: ChannelType.SHOPIFY } },
     update: {},

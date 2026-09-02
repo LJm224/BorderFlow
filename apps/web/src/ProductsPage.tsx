@@ -1,6 +1,7 @@
 import { Button, Form, Input, InputNumber, message, Modal, Select, Space, Table, Tag, Typography } from 'antd';
 import type { TablePaginationConfig } from 'antd';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 import { useAuthStore } from './auth';
@@ -55,10 +56,10 @@ export default function ProductsPage() {
     <div className="page-heading"><div><Typography.Title level={2}>商品与 SKU</Typography.Title><Typography.Text type="secondary">管理商品基础信息、价格和 SKU</Typography.Text></div>{canWrite && <Button type="primary" onClick={openCreate}>新建商品</Button>}</div>
     <Space className="product-toolbar"><Input.Search allowClear placeholder="搜索商品名或 SKU 编码" value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1); }} onSearch={() => setPage(1)} style={{ width: 320 }} /></Space>
     <Table rowKey="id" loading={products.isLoading} dataSource={products.data?.items ?? []} pagination={pagination} columns={[
-      { title: '商品名称', dataIndex: 'name', render: (name: string, product: Product) => <div><Typography.Text strong>{name}</Typography.Text><div className="muted">{product.market} · {product.currency}</div></div> },
+      { title: '商品名称', dataIndex: 'name', render: (name: string, product: Product) => <div><Link to={`/products/${product.id}`}><Typography.Text strong>{name}</Typography.Text></Link><div className="muted">{product.market} · {product.currency}</div></div> },
       { title: 'SKU', render: (_: unknown, product: Product) => product.skus.length ? product.skus.map((sku) => <Tag key={sku.id}>{sku.skuCode}</Tag>) : <Typography.Text type="secondary">暂无 SKU</Typography.Text> },
       { title: '状态', dataIndex: 'status', render: (status: ProductStatus) => <Tag color={status === 'PUBLISHED' ? 'green' : status === 'OFFLINE' ? 'default' : 'blue'}>{statusLabels[status]}</Tag> },
-      { title: '操作', render: (_: unknown, product: Product) => <Space><Button type="link" onClick={() => openEdit(product)} disabled={!canWrite}>编辑</Button>{canApprove && <Select size="small" value={product.status} options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} onChange={(status: ProductStatus) => changeStatus.mutate({ id: product.id, status })} />}</Space> },
+      { title: '操作', render: (_: unknown, product: Product) => <Space><Link to={`/products/${product.id}`}>详情</Link><Button type="link" onClick={() => openEdit(product)} disabled={!canWrite}>编辑</Button>{canApprove && <Select size="small" placeholder="流转" value={undefined} options={nextStatuses(product.status).map((value) => ({ value, label: statusLabels[value] }))} onChange={(status: ProductStatus) => changeStatus.mutate({ id: product.id, status })} />}</Space> },
     ]} />
     <Modal title={editing ? '编辑商品' : '新建商品'} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => form.submit()} confirmLoading={save.isPending} okText="保存" cancelText="取消">
       <Form form={form} layout="vertical" onFinish={(values) => save.mutate(values)}>
@@ -69,4 +70,11 @@ export default function ProductsPage() {
       </Form>
     </Modal>
   </div>;
+}
+
+function nextStatuses(status: ProductStatus): ProductStatus[] {
+  if (status === 'DRAFT') return ['PENDING_REVIEW'];
+  if (status === 'PENDING_REVIEW') return ['DRAFT', 'PUBLISHED'];
+  if (status === 'PUBLISHED') return ['OFFLINE'];
+  return ['DRAFT', 'PUBLISHED'];
 }

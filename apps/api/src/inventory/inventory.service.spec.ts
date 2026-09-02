@@ -2,13 +2,14 @@ import { describe, expect, test, vi } from 'vitest';
 import { InventoryTransactionType } from '@prisma/client';
 import { InventoryService } from './inventory.service';
 
-const inventory = { id: 'inventory-1', skuId: 'sku-1', warehouseId: 'warehouse-1', availableQuantity: 10 };
+const inventory = { id: 'inventory-1', skuId: 'sku-1', warehouseId: 'warehouse-1', availableQuantity: 10, lockedQuantity: 0 };
 
 function fakePrisma() {
   return {
-    inventory: { findMany: vi.fn().mockResolvedValue([inventory]), count: vi.fn().mockResolvedValue(1), findFirst: vi.fn().mockResolvedValue(inventory), update: vi.fn() },
+    inventory: { findMany: vi.fn().mockResolvedValue([inventory]), count: vi.fn().mockResolvedValue(1), findFirst: vi.fn().mockResolvedValue(inventory), update: vi.fn(), updateMany: vi.fn() },
     inventoryTransaction: { create: vi.fn() },
-    $transaction: vi.fn(async (callback: (transaction: any) => Promise<unknown>) => callback({ inventory: { update: vi.fn() }, inventoryTransaction: { create: vi.fn() } })),
+    inventoryAllocation: { create: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+    $transaction: vi.fn(async (callback: (transaction: any) => Promise<unknown>) => callback({ inventory: { findFirst: vi.fn().mockResolvedValue(inventory), updateMany: vi.fn().mockResolvedValue({ count: 1 }), findMany: vi.fn().mockResolvedValue([inventory]) }, inventoryTransaction: { create: vi.fn() }, inventoryAllocation: { create: vi.fn(), findMany: vi.fn(), update: vi.fn() } })),
   };
 }
 
@@ -24,14 +25,17 @@ describe('InventoryService', () => {
     const prisma = fakePrisma();
     const update = vi.fn();
     const create = vi.fn();
-    prisma.$transaction.mockImplementation(async (callback: (transaction: any) => Promise<unknown>) => callback({ inventory: { update }, inventoryTransaction: { create } }));
+    const findFirst = vi.fn().mockResolvedValue(inventory);
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    prisma.$transaction.mockImplementation(async (callback: (transaction: any) => Promise<unknown>) => callback({ inventory: { findFirst, updateMany }, inventoryTransaction: { create } }));
     await new InventoryService(prisma as never).adjust('tenant-1', 'user-1', { skuId: 'sku-1', warehouseId: 'warehouse-1', type: InventoryTransactionType.RESTOCK, quantity: 5, reason: '补货' });
-    expect(update).toHaveBeenCalledWith({ where: { id: inventory.id }, data: { availableQuantity: { increment: 5 } } });
+    expect(updateMany).toHaveBeenCalledWith({ where: { id: inventory.id }, data: { availableQuantity: { increment: 5 } } });
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ type: InventoryTransactionType.RESTOCK, quantity: 5 }) }));
   });
 
   test('rejects an adjustment that would make stock negative', async () => {
     const prisma = fakePrisma();
+    prisma.$transaction.mockImplementation(async (callback: (transaction: any) => Promise<unknown>) => callback({ inventory: { findFirst: vi.fn().mockResolvedValue(inventory), updateMany: vi.fn().mockResolvedValue({ count: 0 }) }, inventoryTransaction: { create: vi.fn() } }));
     await expect(new InventoryService(prisma as never).adjust('tenant-1', 'user-1', { skuId: 'sku-1', warehouseId: 'warehouse-1', type: InventoryTransactionType.SALE, quantity: 11 })).rejects.toMatchObject({ response: { code: 'INSUFFICIENT_STOCK' } });
   });
 
@@ -45,8 +49,8 @@ describe('InventoryService', () => {
     const service = new InventoryService(fakePrisma() as never);
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const create = vi.fn();
-    const transaction = { inventory: { findFirst: vi.fn().mockResolvedValue({ id: inventory.id }), updateMany }, inventoryTransaction: { create } };
-    await service.reserveForOrder(transaction as never, 'tenant-1', 'store-1', 'order-1', [{ skuId: inventory.skuId, quantity: 2 }]);
+    const transaction = { inventory: { findMany: vi.fn().mockResolvedValue([{ ...inventory }]), updateMany }, inventoryTransaction: { create }, inventoryAllocation: { create: vi.fn() } };
+    await service.reserveForOrder(transaction as never, 'tenant-1', 'store-1', 'order-1', [{ id: 'order-item-1', skuId: inventory.skuId, quantity: 2 }]);
     expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: { id: inventory.id, availableQuantity: { gte: 2 } }, data: expect.objectContaining({ availableQuantity: { decrement: 2 }, lockedQuantity: { increment: 2 } }) }));
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ type: InventoryTransactionType.RESERVATION, referenceId: 'order-1' }) }));
   });
@@ -54,8 +58,8 @@ describe('InventoryService', () => {
   test('releases locked stock when a picking order is cancelled', async () => {
     const service = new InventoryService(fakePrisma() as never);
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
-    const transaction = { inventory: { findFirst: vi.fn().mockResolvedValue({ id: inventory.id }), updateMany }, inventoryTransaction: { create: vi.fn() } };
-    await service.releaseOrder(transaction as never, 'tenant-1', 'store-1', 'order-1', [{ skuId: inventory.skuId, quantity: 2 }]);
+    const transaction = { inventory: { findMany: vi.fn().mockResolvedValue([{ ...inventory, lockedQuantity: 2 }]), updateMany }, inventoryTransaction: { create: vi.fn() }, inventoryAllocation: { findMany: vi.fn().mockResolvedValue([{ id: 'allocation-1', quantity: 2, inventory: { ...inventory, lockedQuantity: 2 } }]), update: vi.fn() } };
+    await service.releaseOrder(transaction as never, 'tenant-1', 'store-1', 'order-1', [{ id: 'order-item-1', skuId: inventory.skuId, quantity: 2 }]);
     expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { availableQuantity: { increment: 2 }, lockedQuantity: { decrement: 2 } } }));
   });
 });
