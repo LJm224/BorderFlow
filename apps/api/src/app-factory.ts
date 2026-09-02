@@ -9,7 +9,7 @@ import { PinoLogger } from './infrastructure/pino.logger';
 import { ResponseEnvelopeInterceptor } from './infrastructure/response-envelope.interceptor';
 
 export async function createApplication() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   const logger = app.get(PinoLogger);
   app.useLogger(logger);
   app.flushLogs();

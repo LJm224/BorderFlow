@@ -74,3 +74,31 @@ export class ImportMockShopifyOrdersDto {
   @Type(() => MockShopifyOrderDto)
   orders!: MockShopifyOrderDto[];
 }
+
+export class ShopifyOAuthStartQueryDto {
+  @IsString()
+  @MinLength(1)
+  storeId!: string;
+
+  @IsString()
+  @MinLength(1)
+  shop!: string;
+}
+
+export class ShopifyOAuthCallbackQueryDto {
+  @IsOptional()
+  @IsString()
+  code?: string;
+
+  @IsOptional()
+  @IsString()
+  shop?: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @IsOptional()
+  @IsString()
+  error?: string;
+}

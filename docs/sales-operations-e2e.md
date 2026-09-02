@@ -6,6 +6,7 @@
 2. 进入「店铺与仓库」：确认 `US Demo Store` 和 `US East Warehouse`，可新建店铺及仓库；创建和编辑后刷新页面仍保持数据。
 3. 进入「商品与 SKU」→ Demo Travel Backpack →「配置库存」：确认 SKU `BF-BAG-BLACK` 绑定仓库，并能看到可用/锁定数量。
 4. 进入「销售渠道」→ Shopify 集成：确认连接状态为已连接，确认 `BF-BAG-BLACK` 已映射；点击「填入 Demo JSON」后执行 Mock 同步，结果应显示成功 1、失败 0。
+   如果已配置 Shopify 应用，可填写 `your-store.myshopify.com` 并点击「开始 OAuth 授权」；回调成功后连接会更新为已连接。
 5. 回到「订单与履约」：找到新导入的订单，来源为 Shopify；也可以点击「创建手工订单」，选择店铺、收货国家和 SKU，创建一笔已付款订单。
 6. 打开订单详情，依次推进「拣货中」→「已发货」→「已完成」。进入「库存管理」确认可用库存扣减、锁定库存先增加后释放；取消拣货中的订单应恢复可用库存。
 7. 进入「审计日志」：按订单号或订单 ID 搜索，应看到 `ORDER_CREATED`、`ORDER_IMPORTED`、`ORDER_STATUS_CHANGED`，以及对应的库存调整/预留/发货流水。
@@ -40,6 +41,11 @@
 - `GET /api/channel-connections`：查看渠道连接、SKU 映射和最近同步记录。
 - `POST /api/channel-connections/:id/sku-mappings`：维护外部 SKU 映射。
 - `POST /api/channel-connections/:id/mock/import-orders`：导入 Shopify Mock 订单，按外部订单号幂等。
+- `GET /api/channel-connections/shopify/oauth/start?storeId=...&shop=your-store.myshopify.com`：生成带签名 state 的 Shopify OAuth 授权地址。
+- `GET /api/channel-connections/shopify/oauth/callback`：兑换授权码并保存连接令牌（令牌只保存在服务端 metadata，不返回前端）。
+- `POST /api/webhooks/shopify`：校验 `x-shopify-hmac-sha256` 后接收订单 Webhook；订单事件会复用外部 SKU 映射和订单幂等逻辑。
+
+真实 Shopify 接入需要在 `.env` 配置 `SHOPIFY_CLIENT_ID`、`SHOPIFY_CLIENT_SECRET`、`SHOPIFY_REDIRECT_URI` 和 `SHOPIFY_WEBHOOK_SECRET`，并在 Shopify Partner Dashboard 中登记相同回调地址和 Webhook 地址。
 
 完整自动化验证：
 

@@ -4,9 +4,9 @@
 
 ## 当前状态（2026-09-02）
 
-已完成工程基础、JWT 登录与刷新会话、tenant 隔离与 RBAC、商品/SKU、店铺与仓库管理、仓库库存档案、库存流水、订单库存分配、订单履约、手工订单、Shopify Mock 订单导入、审计日志和商品详情闭环。订单-库存真实 HTTP E2E 位于 `apps/api/e2e/order-inventory.e2e.mjs`，店铺/手工订单/渠道 E2E 位于 `apps/api/e2e/store-order-channel.e2e.mjs`。
+已完成工程基础、JWT 登录与刷新会话、tenant 隔离与 RBAC、商品/SKU、店铺与仓库管理、仓库库存档案、库存流水、订单库存分配、订单履约、手工订单、Shopify Mock/订单 Webhook 导入、审计日志和商品详情闭环；首页核心指标、趋势和市场表现已改为读取真实数据库统计。订单-库存真实 HTTP E2E 位于 `apps/api/e2e/order-inventory.e2e.mjs`，店铺/手工订单/渠道/看板 E2E 位于 `apps/api/e2e/store-order-channel.e2e.mjs`。
 
-数据看板、AI 商品上架 Agent、真实 Shopify OAuth/Webhook 同步和 CI/部署仍在后续切片中。页面验收步骤见 [`docs/sales-operations-e2e.md`](docs/sales-operations-e2e.md)。
+AI 商品上架 Agent、Shopify 商品/库存自动同步、生产级同步重试队列和 CI/部署仍在后续切片中。页面验收步骤见 [`docs/sales-operations-e2e.md`](docs/sales-operations-e2e.md)。
 
 ## 环境要求
 
